@@ -1,0 +1,149 @@
+
+
+fib(x) = if x <= 1  then x else fib(x - 1) + fib(x - 2)
+
+cons(x,y) = x ^ y
+
+travel(x, y) = if y > #x then -1 
+				else if y == 1 then head(x)
+				else travel(tail(x), y - 1)  
+
+
+
+
+channel position:(Int,Int) 
+
+channel north,south,east,west
+
+ROBOT(n,m) = position.(n,m) -> ROBOT(n,m)
+             [] north -> ROBOT(n+1,m)
+             [] south -> ROBOT(n-1,m)
+             [] east -> ROBOT(n,m+1)
+             [] west -> ROBOT(n,m-1)
+
+
+CT(a,b,0) = a 	-> CT(a,b,1)
+
+CT(a,b,n) = a -> CT(a,b,n+1)
+         [] b -> CT(a,b,n-1)
+
+
+
+AddCond(P,A,Q) = P [|A|] Q
+
+
+
+ListConds(P,<>) = P
+ListConds(P,<(Q,A)>^cs) = ListConds(AddCond(P,A,Q),cs)
+
+
+
+N = 3
+M = 5
+
+RobotOnTable = ListConds(ROBOT(0,0),
+               <(CT(north,south,0),{north,south}),
+                (CT(south,north,N),{north,south}),
+                (CT(east,west,0),{east,west}),
+                (CT(west,east,M),{east,west})>)
+
+onestep = AddCond(CT(north,south,0),{north,south},ROBOT(0,0))
+
+BLOCK(r,s,n,m) = (n!=r-1 or m!=s) & north -> BLOCK(r,s,n+1,m)
+              [] (n!=r+1 or m!=s) & south -> BLOCK(r,s,n-1,m)
+              [] (n!=r or m!=s-1) & east -> BLOCK(r,s,n,m+1)
+              [] (n!=r or m!=s+1) & west -> BLOCK(r,s,n,m-1)
+
+
+
+Blocks = <(BLOCK(r,s,0,0),{north,south,east,west}) |
+          r <- <0..N>, s<-<0..M>, r%3==2, s%3==1>
+
+RobotWithBlocks = ListConds(RobotOnTable,Blocks)
+
+
+
+BlockSet(S,n,m) = not member((n+1,m),S) & north -> BlockSet(S,n+1,m)
+               [] not member((n-1,m),S) & south -> BlockSet(S,n-1,m)
+               [] not member((n,m+1),S) & east -> BlockSet(S,n,m+1)
+               [] not member((n,m-1),S) & west -> BlockSet(S,n,m-1)
+
+S = {(r,s) | r <- {0..N}, s<-{0..M}, r%2==1, s%2==1}
+
+RobotWithBlockSet = AddCond(RobotOnTable,{north,south,east,west},BlockSet(S,0,0))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---------------------------------------
+
+--N = 5
+--
+--PHILNAMES= {0..N-1}
+--FORKNAMES = {0..N-1}
+--
+--channel sits, eats, getsup:PHILNAMES
+--channel picks, putsdown:PHILNAMES.FORKNAMES
+--
+--
+--PHIL(i) = sits!i -> picks!i!i -> picks!i!((i+1)%N) ->
+--          eats!i -> putsdown!i!((i+1)%N) -> putsdown!i!i -> getsup!i -> PHIL(i)
+--
+--
+--
+--AlphaP(i) = {sits.i,picks.i.i,picks.i.(i+1)%N,eats.i,putsdown.i.i,
+--             putsdown.i.(i+1)%N,getsup.i}
+--
+--
+--
+--FORK(i) = picks!i!i -> putsdown!i!i -> FORK(i)
+--         []  picks!((i-1)%N)!i -> putsdown!((i-1)%N)!i -> FORK(i)
+--
+--AlphaF(i) = {picks.i.i, picks.(i-1)%N.i, putsdown.i.i, putsdown.(i-1)%N.i}
+--
+--
+--
+--PHILS = ||| i:PHILNAMES@ PHIL(i)
+--FORKS = ||| i:FORKNAMES@ FORK(i)
+--
+--SYSTEM = PHILS[|{|picks, putsdown|}|]FORKS
+--
+--
+--
+--assert SYSTEM :[deadlock free [F]]
+--
+--
+--
+--BUTLER(j) = j>0 & getsup?i -> BUTLER(j-1)
+--            []j<N-1 & sits?i -> BUTLER(j+1)
+--
+--BSYSTEM = SYSTEM [|{|sits, getsup|}|] BUTLER(0)
+--
+--assert BSYSTEM :[deadlock free [F]]
+--
+--
+--
+--LPHIL(i)= sits.i -> picks.i.((i+1)%N) -> picks.i.i -> 
+--          eats.i -> putsdown.i.((i+1)%N) -> putsdown.i.i -> getsup.i -> LPHIL(i)
+--
+--ASPHILS = ||| i:PHILNAMES @ if i==0 then LPHIL(i) else PHIL(i)
+--
+--ASSYSTEM = ASPHILS[|{|picks, putsdown|}|]FORKS
+--  
+--
+--assert ASSYSTEM :[deadlock free [F]]
+
